@@ -106,7 +106,7 @@ export default function WeeklyTracker({ currentMember }: WeeklyTrackerProps) {
         </PixelButton>
         <h2
           className="font-[family-name:var(--font-pixel)] text-sm sm:text-lg"
-          style={{ color: "var(--accent)", letterSpacing: "1px" }}
+          style={{ color: "var(--text-primary)", letterSpacing: "1px" }}
         >
           WEEK OF {weekLabel}
         </h2>
