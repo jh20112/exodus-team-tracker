@@ -5,6 +5,7 @@ import CharacterSelect, {
   useCharacterSelection,
 } from "@/components/CharacterSelect";
 import NavButtons from "@/components/NavButtons";
+import NetworkBackground from "@/components/NetworkBackground";
 import type { TeamMember } from "@/lib/types";
 
 export default function Home() {
@@ -30,7 +31,8 @@ export default function Home() {
   if (!loaded) return null;
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center gap-14 p-8">
+    <main className="relative min-h-screen flex flex-col items-center justify-center gap-14 p-8">
+      <NetworkBackground />
       {/* Title */}
       <div className="relative z-10 text-center fade-in-up" style={{ animationDelay: "0s" }}>
         <h1
@@ -64,7 +66,7 @@ export default function Home() {
       </div>
 
       {/* Navigation */}
-      <div className="fade-in-up" style={{ animationDelay: "0.1s" }}>
+      <div className="relative z-10 fade-in-up" style={{ animationDelay: "0.1s" }}>
         <NavButtons selected={selected} />
       </div>
 
