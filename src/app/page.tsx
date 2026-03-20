@@ -9,6 +9,8 @@ import type { TeamMember } from "@/lib/types";
 
 export default function Home() {
   const [members, setMembers] = useState<TeamMember[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { selected, select, loaded } = useCharacterSelection();
 
   useEffect(() => {
@@ -18,7 +20,11 @@ export default function Home() {
         return r.json();
       })
       .then(setMembers)
-      .catch((err) => console.error("Failed to load members:", err));
+      .catch((err) => {
+        console.error("Failed to load members:", err);
+        setError("Failed to load team members");
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   if (!loaded) return null;
@@ -74,11 +80,29 @@ export default function Home() {
         >
           select your team member
         </p>
-        <CharacterSelect
-          members={members}
-          selected={selected}
-          onSelect={select}
-        />
+        {loading && (
+          <p
+            className="font-[family-name:var(--font-pixel)] text-xs subtle-pulse"
+            style={{ color: "var(--text-muted)" }}
+          >
+            loading...
+          </p>
+        )}
+        {error && (
+          <p
+            className="font-[family-name:var(--font-pixel)] text-xs"
+            style={{ color: "var(--accent-rose)" }}
+          >
+            {error}
+          </p>
+        )}
+        {!loading && !error && (
+          <CharacterSelect
+            members={members}
+            selected={selected}
+            onSelect={select}
+          />
+        )}
       </div>
 
     </main>
