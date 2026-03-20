@@ -1,26 +1,278 @@
+@import url('https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --accent: #60a5fa;
+  --accent-green: #4ade80;
+  --accent-amber: #fbbf24;
+  --accent-rose: #fb7185;
+  --bg-dark: #0d0d0d;
+  --bg-surface: #141414;
+  --bg-card: #1a1a1a;
+  --bg-elevated: #1f1f1f;
+  --border-subtle: #1f1f1f;
+  --border-default: #2a2a2a;
+  --text-primary: #e2e8f0;
+  --text-muted: #555555;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-pixel: 'Geist Mono', monospace;
+  --font-mono: 'Geist Mono', monospace;
+  --color-bg-dark: var(--bg-dark);
+  --color-bg-surface: var(--bg-surface);
+  --color-bg-card: var(--bg-card);
+  --color-border-pixel: var(--border-default);
+  --color-text-primary: var(--text-primary);
+  --color-text-muted: var(--text-muted);
+  --color-cyan: var(--accent);
+  --color-magenta: var(--accent-rose);
+  --color-green: var(--accent-green);
+  --color-yellow: var(--accent-amber);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg-dark);
+  color: var(--text-primary);
+  font-family: 'Geist Mono', monospace;
+  image-rendering: auto;
+}
+
+/* Shadow utilities */
+.shadow-card {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+.shadow-glow {
+  box-shadow: 0 0 60px rgba(0, 0, 0, 0.8);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes subtlePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.fade-in-up {
+  opacity: 0;
+  animation: slideUp 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.subtle-pulse {
+  animation: subtlePulse 2.5s ease-in-out infinite;
+}
+
+/* Legacy animation class aliases */
+.pixel-pulse {
+  animation: subtlePulse 2.5s ease-in-out infinite;
+}
+
+/* Button base */
+.btn {
+  font-family: 'Geist Mono', monospace;
+  border: 1px solid var(--border-default);
+  padding: 8px 20px;
+  background: transparent;
+  cursor: pointer;
+  text-transform: lowercase;
+  letter-spacing: 0.16px;
+  transition: border-color 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+    background-color 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+    color 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn:hover {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(96, 165, 250, 0.4);
+}
+
+.btn:active {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Legacy class alias */
+.pixel-btn {
+  font-family: 'Geist Mono', monospace;
+  border: 1px solid var(--border-default);
+  padding: 8px 20px;
+  background: transparent;
+  cursor: pointer;
+  text-transform: lowercase;
+  letter-spacing: 0.16px;
+  transition: border-color 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+    background-color 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+    color 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pixel-btn:hover {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(96, 165, 250, 0.4);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.pixel-btn:active {
+  background: rgba(255, 255, 255, 0.05);
+  transform: translateY(0);
+}
+
+/* Character card */
+.character-card {
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+    background 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.character-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--border-default) !important;
+  background: var(--bg-elevated) !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+}
+
+.character-card:hover .character-initial {
+  color: var(--text-primary) !important;
+}
+
+/* Textarea styling */
+.pixel-textarea {
+  font-family: 'Geist Mono', monospace;
+  background: var(--bg-dark);
+  border: 1px solid var(--border-default);
+  color: var(--text-primary);
+  padding: 10px 14px;
+  font-size: 14px;
+  line-height: 1.5;
+  resize: vertical;
+  outline: none;
+  width: 100%;
+  transition: border-color 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pixel-textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px rgba(96, 165, 250, 0.2);
+}
+
+/* Border utility */
+.pixel-border {
+  border: 1px solid var(--border-default);
+}
+
+/* Card badge hover */
+.card-badge-hover {
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-badge-hover:hover {
+  filter: brightness(1.2);
+  transform: scale(1.05);
+}
+
+/* Close button hover */
+.close-btn-hover {
+  transition: color 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.close-btn-hover:hover {
+  color: var(--text-primary) !important;
+}
+
+/* Day cell hover effect */
+.day-cell-hover {
+  transition: background-color 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.day-cell-hover:hover {
+  background: var(--bg-elevated) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  transform: translateY(-1px);
+}
+
+/* Today cell indicator */
+.today-glow {
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+}
+
+/* Check-in / Reflect prompt hover */
+.pixel-prompt-hover {
+  transition: opacity 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pixel-prompt-hover:hover {
+  opacity: 0.7;
+}
+
+/* Week row base */
+.week-row {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  transition: box-shadow 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.week-row:hover {
+  border-color: var(--border-default);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* Week row expand/collapse animation */
+.week-row-expand {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 0.25s ease;
+}
+
+/* Modal overlay */
+.modal-overlay {
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* Modal container */
+.modal-container {
+  background: var(--bg-elevated);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 60px rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-subtle);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-dark);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-default);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3a3a3a;
 }

@@ -1,0 +1,26 @@
+export interface TeamMember {
+  id: string;
+  name: string;
+  color: string;
+}
+
+export interface WeeklyCard {
+  id: string;
+  memberId: string;
+  member?: TeamMember;
+  weekStart: string;
+  goalOfWeek: string | null;
+  supportRequest: string | null;
+  generalQuestions: string | null;
+  mondayCompleted: boolean;
+  rose: string | null;
+  thorn: string | null;
+  curiousMoment: string | null;
+  proudOf: string | null;
+  couldImprove: string | null;
+  fridayCompleted: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type CardFormType = "monday" | "friday";

@@ -1,0 +1,41 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model TeamMember {
+  id    String @id @default(cuid())
+  name  String @unique
+  color String
+  cards WeeklyCard[]
+}
+
+model WeeklyCard {
+  id              String     @id @default(cuid())
+  memberId        String
+  member          TeamMember @relation(fields: [memberId], references: [id])
+  weekStart       DateTime
+
+  // Monday fields
+  goalOfWeek      String?
+  supportRequest  String?
+  generalQuestions String?
+  mondayCompleted Boolean    @default(false)
+
+  // Friday fields
+  rose            String?
+  thorn           String?
+  curiousMoment   String?
+  proudOf         String?
+  couldImprove    String?
+  fridayCompleted Boolean    @default(false)
+
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  @@unique([memberId, weekStart])
+}
