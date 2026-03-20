@@ -13,8 +13,12 @@ export default function Home() {
 
   useEffect(() => {
     fetch("/api/members")
-      .then((r) => r.json())
-      .then(setMembers);
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then(setMembers)
+      .catch((err) => console.error("Failed to load members:", err));
   }, []);
 
   if (!loaded) return null;

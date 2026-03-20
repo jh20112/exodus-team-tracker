@@ -38,8 +38,14 @@ export default function WeeklyTracker({ currentMember }: WeeklyTrackerProps) {
     const prevMonthStr = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, "0")}`;
 
     Promise.all([
-      fetch(`/api/cards?month=${monthStr}`).then((r) => r.json()),
-      fetch(`/api/cards?month=${prevMonthStr}`).then((r) => r.json()),
+      fetch(`/api/cards?month=${monthStr}`).then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      }),
+      fetch(`/api/cards?month=${prevMonthStr}`).then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      }),
     ]).then(([current, prev]) => {
       // Deduplicate by card id
       const map = new Map<string, WeeklyCard>();
@@ -47,7 +53,7 @@ export default function WeeklyTracker({ currentMember }: WeeklyTrackerProps) {
         map.set(c.id, c);
       }
       setCards(Array.from(map.values()));
-    });
+    }).catch((err) => console.error("Failed to load cards:", err));
   }, [currentWeekStart]);
 
   useEffect(() => {
