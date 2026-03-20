@@ -55,13 +55,14 @@ export default function CharacterSelect({ members, selected, onSelect }: Charact
             <div
               className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center relative character-card"
               style={{
+                "--member-color": member.color || "var(--accent)",
                 border: isSelected ? `1px solid ${member.color || 'var(--accent)'}` : "1px solid var(--border-subtle)",
                 background: isSelected ? "var(--bg-elevated)" : "var(--bg-surface)",
                 boxShadow: isSelected
                   ? `0 0 20px ${member.color || 'var(--accent)'}20, 0 8px 30px rgba(0,0,0,0.3)`
                   : "0 4px 20px rgba(0,0,0,0.15)",
                 transform: isSelected ? "translateY(-2px)" : undefined,
-              }}
+              } as React.CSSProperties}
             >
               <span
                 className="font-[family-name:var(--font-pixel)] text-2xl sm:text-3xl character-initial"

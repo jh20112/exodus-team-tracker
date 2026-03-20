@@ -145,13 +145,14 @@ body {
 
 .character-card:hover {
   transform: translateY(-3px);
-  border-color: var(--border-default) !important;
+  border-color: var(--member-color) !important;
   background: var(--bg-elevated) !important;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--member-color) 12%, transparent),
+    0 8px 30px rgba(0, 0, 0, 0.3);
 }
 
 .character-card:hover .character-initial {
-  color: var(--text-primary) !important;
+  color: var(--member-color) !important;
 }
 
 /* Textarea styling */
