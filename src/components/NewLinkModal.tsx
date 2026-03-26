@@ -106,8 +106,13 @@ export default function NewLinkModal({ projects, onClose, onCreated }: NewLinkMo
             onChange={(e) => setFromId(e.target.value)}
           >
             <option value="">select...</option>
-            {options.map((o) => (
-              <option key={o.id} value={o.id}>{o.label}</option>
+            {projects.map((p) => (
+              <optgroup key={p.id} label={p.name}>
+                <option value={p.id}>{p.name} (project)</option>
+                {(p.workstreams || []).map((ws) => (
+                  <option key={ws.id} value={ws.id}>{ws.name}</option>
+                ))}
+              </optgroup>
             ))}
           </select>
         </div>
@@ -130,8 +135,13 @@ export default function NewLinkModal({ projects, onClose, onCreated }: NewLinkMo
             onChange={(e) => setToId(e.target.value)}
           >
             <option value="">select...</option>
-            {options.filter((o) => o.id !== fromId).map((o) => (
-              <option key={o.id} value={o.id}>{o.label}</option>
+            {projects.map((p) => (
+              <optgroup key={p.id} label={p.name}>
+                <option value={p.id} disabled={p.id === fromId}>{p.name} (project)</option>
+                {(p.workstreams || []).map((ws) => (
+                  <option key={ws.id} value={ws.id} disabled={ws.id === fromId}>{ws.name}</option>
+                ))}
+              </optgroup>
             ))}
           </select>
         </div>
