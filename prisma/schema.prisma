@@ -12,7 +12,8 @@ model TeamMember {
   id    String @id @default(cuid())
   name  String @unique
   color String
-  cards WeeklyCard[]
+  cards    WeeklyCard[]
+  projects Project[]
 }
 
 model WeeklyCard {
@@ -46,4 +47,41 @@ model WeeklyCard {
   updatedAt       DateTime   @updatedAt
 
   @@unique([memberId, weekStart])
+}
+
+model Project {
+  id          String          @id @default(cuid())
+  memberId    String
+  member      TeamMember      @relation(fields: [memberId], references: [id])
+  name        String
+  description String?
+  color       String?
+  posX        Float           @default(0.5)
+  posY        Float           @default(0.5)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  items       ChecklistItem[]
+  linksFrom   ProjectLink[]   @relation("linkFrom")
+  linksTo     ProjectLink[]   @relation("linkTo")
+}
+
+model ChecklistItem {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  text      String
+  completed Boolean  @default(false)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ProjectLink {
+  id     String  @id @default(cuid())
+  fromId String
+  toId   String
+  from   Project @relation("linkFrom", fields: [fromId], references: [id], onDelete: Cascade)
+  to     Project @relation("linkTo", fields: [toId], references: [id], onDelete: Cascade)
+
+  @@unique([fromId, toId])
 }

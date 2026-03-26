@@ -274,6 +274,33 @@ body {
   box-shadow: 0 0 8px var(--dot-color);
 }
 
+/* Project graph canvas cursors */
+.project-graph-canvas.hovering-node { cursor: pointer; }
+.project-graph-canvas.dragging-node { cursor: grabbing; }
+.project-graph-canvas.linking-node { cursor: crosshair; }
+
+/* Panel slide-in animation */
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.project-panel { animation: slideInRight 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+
+/* Checklist styles */
+.checklist-checkbox {
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--border-default);
+  background: transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.checklist-checkbox:hover { border-color: var(--accent-green); }
+.checklist-checkbox.checked { background: var(--accent-green); border-color: var(--accent-green); }
+.checklist-text-done { text-decoration: line-through; color: var(--text-muted); }
+
 /* Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;

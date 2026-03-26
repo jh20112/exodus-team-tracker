@@ -28,6 +28,9 @@ export default function NavButtons({ selected }: NavButtonsProps) {
         <PixelButton onClick={() => navigate("/calendar")} color="var(--text-primary)">
           Calendar
         </PixelButton>
+        <PixelButton onClick={() => navigate("/projects")} color="var(--text-primary)">
+          Projects
+        </PixelButton>
         <PixelButton
           onClick={() => navigate("/insights")}
           color="var(--text-primary)"

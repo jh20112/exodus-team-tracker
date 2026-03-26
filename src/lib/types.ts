@@ -28,3 +28,34 @@ export interface WeeklyCard {
 }
 
 export type CardFormType = "monday" | "friday";
+
+export interface Project {
+  id: string;
+  memberId: string;
+  name: string;
+  description: string | null;
+  color: string | null;
+  posX: number;
+  posY: number;
+  createdAt: string;
+  updatedAt: string;
+  items?: ChecklistItem[];
+  linksFrom?: ProjectLink[];
+  linksTo?: ProjectLink[];
+}
+
+export interface ChecklistItem {
+  id: string;
+  projectId: string;
+  text: string;
+  completed: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProjectLink {
+  id: string;
+  fromId: string;
+  toId: string;
+}
