@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
   try {
-    const { fromId, toId } = await request.json();
+    const { fromId, toId, description } = await request.json();
     if (!fromId || !toId) {
       return NextResponse.json({ error: "fromId and toId required" }, { status: 400 });
     }
@@ -13,8 +13,8 @@ export async function POST(request: NextRequest) {
 
     const link = await prisma.projectLink.upsert({
       where: { fromId_toId: { fromId: a, toId: b } },
-      update: {},
-      create: { fromId: a, toId: b },
+      update: { description: description || null },
+      create: { fromId: a, toId: b, description: description || null },
     });
 
     return NextResponse.json(link);

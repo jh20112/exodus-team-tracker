@@ -58,4 +58,5 @@ export interface ProjectLink {
   id: string;
   fromId: string;
   toId: string;
+  description: string | null;
 }

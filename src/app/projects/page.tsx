@@ -5,8 +5,11 @@ import { useRouter } from "next/navigation";
 import { useCharacterSelection } from "@/components/CharacterSelect";
 import ProjectGraph from "@/components/ProjectGraph";
 import ProjectDetailPanel from "@/components/ProjectDetailPanel";
+import NewLinkModal from "@/components/NewLinkModal";
 import PixelButton from "@/components/PixelButton";
 import type { Project } from "@/lib/types";
+
+const NODE_COLORS = ["#8aaab8", "#b88aa0", "#8ab89a", "#b8a88a"];
 
 export default function ProjectsPage() {
   const router = useRouter();
@@ -14,6 +17,7 @@ export default function ProjectsPage() {
   const [ready, setReady] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [showLinkModal, setShowLinkModal] = useState(false);
 
   useEffect(() => {
     if (loaded && !selected) {
@@ -78,6 +82,13 @@ export default function ProjectsPage() {
     setSelectedProject(null);
   }, []);
 
+  const refreshProjects = useCallback(async () => {
+    if (!selected) return;
+    const res = await fetch(`/api/projects?memberId=${selected.id}`);
+    if (res.ok) setProjects(await res.json());
+    setShowLinkModal(false);
+  }, [selected]);
+
   if (!ready || !selected) return null;
 
   return (
@@ -105,9 +116,16 @@ export default function ProjectsPage() {
             {selected.name}
           </span>
         </div>
-        <PixelButton onClick={createProject} color="var(--accent)">
-          + new project
-        </PixelButton>
+        <div className="flex flex-col gap-2">
+          <PixelButton onClick={createProject} color="var(--accent)">
+            + new project
+          </PixelButton>
+          {projects.length >= 2 && (
+            <PixelButton onClick={() => setShowLinkModal(true)} color="var(--text-muted)">
+              + new link
+            </PixelButton>
+          )}
+        </div>
       </div>
 
       {/* Graph */}
@@ -124,9 +142,18 @@ export default function ProjectsPage() {
       {selectedProject && (
         <ProjectDetailPanel
           project={selectedProject}
+          nodeColor={selectedProject.color || NODE_COLORS[projects.indexOf(selectedProject) % NODE_COLORS.length]}
           onClose={() => setSelectedProject(null)}
           onUpdate={handleProjectUpdate}
           onDelete={handleProjectDelete}
+        />
+      )}
+      {/* Link modal */}
+      {showLinkModal && (
+        <NewLinkModal
+          projects={projects}
+          onClose={() => setShowLinkModal(false)}
+          onCreated={refreshProjects}
         />
       )}
     </main>

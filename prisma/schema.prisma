@@ -77,11 +77,12 @@ model ChecklistItem {
 }
 
 model ProjectLink {
-  id     String  @id @default(cuid())
-  fromId String
-  toId   String
-  from   Project @relation("linkFrom", fields: [fromId], references: [id], onDelete: Cascade)
-  to     Project @relation("linkTo", fields: [toId], references: [id], onDelete: Cascade)
+  id          String  @id @default(cuid())
+  fromId      String
+  toId        String
+  description String?
+  from        Project @relation("linkFrom", fields: [fromId], references: [id], onDelete: Cascade)
+  to          Project @relation("linkTo", fields: [toId], references: [id], onDelete: Cascade)
 
   @@unique([fromId, toId])
 }

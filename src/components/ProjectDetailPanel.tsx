@@ -7,6 +7,7 @@ import type { Project, ChecklistItem } from "@/lib/types";
 
 interface ProjectDetailPanelProps {
   project: Project;
+  nodeColor: string;
   onClose: () => void;
   onUpdate: (updated: Project) => void;
   onDelete: (id: string) => void;
@@ -14,6 +15,7 @@ interface ProjectDetailPanelProps {
 
 export default function ProjectDetailPanel({
   project,
+  nodeColor,
   onClose,
   onUpdate,
   onDelete,
@@ -117,7 +119,7 @@ export default function ProjectDetailPanel({
           <input
             ref={nameRef}
             className="flex-1 bg-transparent font-[family-name:var(--font-pixel)] text-sm outline-none"
-            style={{ color: "var(--accent)" }}
+            style={{ color: nodeColor }}
             value={name}
             onChange={(e) => setName(e.target.value)}
             onBlur={() => {

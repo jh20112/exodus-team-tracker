@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useState, useCallback } from "react";
-import { normalizedToScreen, screenToNormalized, hitTestNode, hitTestLine } from "@/lib/graphUtils";
+import { normalizedToScreen, screenToNormalized, hitTestNode } from "@/lib/graphUtils";
 import type { Project, ProjectLink } from "@/lib/types";
 
 interface ProjectGraphProps {
@@ -11,22 +11,20 @@ interface ProjectGraphProps {
   onUpdateProjects: (projects: Project[]) => void;
 }
 
-// Rendering config — mirrors NetworkBackground aesthetic but larger
 const CFG = {
-  nodeRadius: 16,
+  nodeRadius: 18,
   hoverScale: 1.15,
-  pulseAmp: 1.2,
   pulseSpeed: 0.6,
-  linkOpacity: 0.2,
-  linkWidth: 1,
-  glowLinkWidth: 2.5,
-  glowLinkOpacity: 0.08,
+  linkOpacity: 0.3,
+  linkWidth: 1.5,
+  glowLinkWidth: 3,
+  glowLinkOpacity: 0.12,
   hitPadding: 8,
   dragThreshold: 5,
-  nameOffsetY: 28,
+  nameOffsetY: 30,
 };
 
-const COLORS = ["#5a7a84", "#846a78", "#6a8472", "#847a6a"];
+const COLORS = ["#8aaab8", "#b88aa0", "#8ab89a", "#b8a88a"];
 
 interface ScreenNode {
   id: string;
@@ -50,12 +48,10 @@ export default function ProjectGraph({
   const projectsRef = useRef(projects);
   const [cursorClass, setCursorClass] = useState("");
 
-  // Keep ref in sync
   useEffect(() => {
     projectsRef.current = projects;
   }, [projects]);
 
-  // Collect all links across projects
   const getLinks = useCallback((): ProjectLink[] => {
     const seen = new Set<string>();
     const links: ProjectLink[] = [];
@@ -82,15 +78,10 @@ export default function ProjectGraph({
     let lastTime = 0;
 
     // Interaction state
-    let mouseX = -9999, mouseY = -9999;
     let hoveredId: string | null = null;
-    let hoveredLinkId: string | null = null;
     let dragId: string | null = null;
     let dragStartX = 0, dragStartY = 0;
     let dragMoved = false;
-    let shiftHeld = false;
-    let linkSourceId: string | null = null;
-    let linkCursorX = 0, linkCursorY = 0;
 
     // Glow cache
     const glowCache = new Map<string, { canvas: HTMLCanvasElement; size: number }>();
@@ -104,8 +95,8 @@ export default function ProjectGraph({
       oc.height = size * 2;
       const octx = oc.getContext("2d")!;
       const grad = octx.createRadialGradient(size, size, 0, size, size, size);
-      grad.addColorStop(0, color + "40");
-      grad.addColorStop(0.35, color + "18");
+      grad.addColorStop(0, color + "70");
+      grad.addColorStop(0.3, color + "30");
       grad.addColorStop(1, color + "00");
       octx.fillStyle = grad;
       octx.fillRect(0, 0, size * 2, size * 2);
@@ -159,19 +150,15 @@ export default function ProjectGraph({
           id: l.id,
           x1: from?.x ?? 0, y1: from?.y ?? 0,
           x2: to?.x ?? 0, y2: to?.y ?? 0,
-          fromColor: from?.color ?? memberColor,
+          description: l.description,
         };
-      }).filter((l) => {
-        // Only render if both nodes exist
-        return nodes.some((n) => n.x === l.x1 && n.y === l.y1) &&
-               nodes.some((n) => n.x === l.x2 && n.y === l.y2);
-      });
+      }).filter((l) => nodes.some((n) => n.x === l.x1 && n.y === l.y1) &&
+                       nodes.some((n) => n.x === l.x2 && n.y === l.y2));
 
       // Draw connection lines
       for (const l of linkLines) {
-        const isHovered = hoveredLinkId === l.id;
-        ctx!.strokeStyle = `rgba(156, 184, 194, ${isHovered ? 0.4 : CFG.linkOpacity})`;
-        ctx!.lineWidth = isHovered ? CFG.glowLinkWidth : CFG.linkWidth;
+        ctx!.strokeStyle = `rgba(180, 200, 210, ${CFG.linkOpacity})`;
+        ctx!.lineWidth = CFG.linkWidth;
         ctx!.beginPath();
         ctx!.moveTo(l.x1, l.y1);
         ctx!.lineTo(l.x2, l.y2);
@@ -181,25 +168,23 @@ export default function ProjectGraph({
       // Glow on links
       ctx!.lineWidth = CFG.glowLinkWidth;
       for (const l of linkLines) {
-        ctx!.strokeStyle = `rgba(123, 157, 181, ${CFG.glowLinkOpacity})`;
+        ctx!.strokeStyle = `rgba(160, 185, 200, ${CFG.glowLinkOpacity})`;
         ctx!.beginPath();
         ctx!.moveTo(l.x1, l.y1);
         ctx!.lineTo(l.x2, l.y2);
         ctx!.stroke();
       }
 
-      // Draw linking line preview
-      if (linkSourceId) {
-        const src = nodes.find((n) => n.id === linkSourceId);
-        if (src) {
-          ctx!.strokeStyle = `rgba(156, 184, 194, 0.35)`;
-          ctx!.lineWidth = 1.5;
-          ctx!.setLineDash([6, 4]);
-          ctx!.beginPath();
-          ctx!.moveTo(src.x, src.y);
-          ctx!.lineTo(linkCursorX, linkCursorY);
-          ctx!.stroke();
-          ctx!.setLineDash([]);
+      // Link description labels at midpoint
+      ctx!.font = "9px 'Geist Mono', monospace";
+      ctx!.textAlign = "center";
+      ctx!.textBaseline = "middle";
+      for (const l of linkLines) {
+        if (l.description) {
+          const mx = (l.x1 + l.x2) / 2;
+          const my = (l.y1 + l.y2) / 2;
+          ctx!.fillStyle = "rgba(180, 200, 210, 0.4)";
+          ctx!.fillText(l.description, mx, my - 8, 140);
         }
       }
 
@@ -210,7 +195,7 @@ export default function ProjectGraph({
         ctx!.drawImage(glow.canvas, n.x - glow.size, n.y - glow.size, glow.size * 2, glow.size * 2);
 
         // Solid circle
-        ctx!.globalAlpha = 0.7;
+        ctx!.globalAlpha = 0.9;
         ctx!.fillStyle = n.color;
         ctx!.beginPath();
         ctx!.arc(n.x, n.y, n.radius, 0, Math.PI * 2);
@@ -219,21 +204,16 @@ export default function ProjectGraph({
 
         // Progress ring
         if (n.progress > 0) {
-          ctx!.strokeStyle = `rgba(123, 171, 138, 0.7)`;
+          ctx!.strokeStyle = `rgba(140, 200, 160, 0.8)`;
           ctx!.lineWidth = 2.5;
           ctx!.beginPath();
-          ctx!.arc(
-            n.x, n.y,
-            n.radius + 4,
-            -Math.PI / 2,
-            -Math.PI / 2 + Math.PI * 2 * n.progress
-          );
+          ctx!.arc(n.x, n.y, n.radius + 4, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * n.progress);
           ctx!.stroke();
         }
 
         // Background ring track
         if (n.project.items && n.project.items.length > 0) {
-          ctx!.strokeStyle = `rgba(123, 171, 138, 0.12)`;
+          ctx!.strokeStyle = `rgba(140, 200, 160, 0.15)`;
           ctx!.lineWidth = 2.5;
           ctx!.beginPath();
           ctx!.arc(n.x, n.y, n.radius + 4, 0, Math.PI * 2);
@@ -241,7 +221,7 @@ export default function ProjectGraph({
         }
 
         // Name label (word-wrapped)
-        ctx!.fillStyle = hoveredId === n.id ? "rgba(226, 232, 240, 0.9)" : "rgba(226, 232, 240, 0.5)";
+        ctx!.fillStyle = hoveredId === n.id ? "rgba(226, 232, 240, 1.0)" : "rgba(226, 232, 240, 0.7)";
         ctx!.font = "10px 'Geist Mono', monospace";
         ctx!.textAlign = "center";
         ctx!.textBaseline = "top";
@@ -295,33 +275,16 @@ export default function ProjectGraph({
       const hit = hitTestNode(mx, my, nodes, CFG.hitPadding);
 
       if (hit) {
-        if (e.shiftKey) {
-          // Start linking
-          linkSourceId = hit.id;
-          linkCursorX = mx;
-          linkCursorY = my;
-          setCursorClass("linking-node");
-        } else {
-          // Start potential drag
-          dragId = hit.id;
-          dragStartX = mx;
-          dragStartY = my;
-          dragMoved = false;
-          setCursorClass("dragging-node");
-        }
+        dragId = hit.id;
+        dragStartX = mx;
+        dragStartY = my;
+        dragMoved = false;
+        setCursorClass("dragging-node");
       }
     }
 
     function onMouseMove(e: MouseEvent) {
       const [mx, my] = getCanvasCoords(e);
-      mouseX = mx;
-      mouseY = my;
-
-      if (linkSourceId) {
-        linkCursorX = mx;
-        linkCursorY = my;
-        return;
-      }
 
       if (dragId) {
         const dx = mx - dragStartX;
@@ -330,7 +293,6 @@ export default function ProjectGraph({
           dragMoved = true;
         }
         if (dragMoved) {
-          // Update position optimistically
           const norm = screenToNormalized(mx, my, W, H);
           const updated = projectsRef.current.map((p) =>
             p.id === dragId ? { ...p, posX: norm.x, posY: norm.y } : p
@@ -343,57 +305,18 @@ export default function ProjectGraph({
       // Hover detection
       const nodes = getScreenNodes(performance.now());
       const hitNode = hitTestNode(mx, my, nodes, CFG.hitPadding);
-      const links = getLinks();
-      const linkLines = links.map((l) => {
-        const from = nodes.find((n) => n.id === l.fromId);
-        const to = nodes.find((n) => n.id === l.toId);
-        return { id: l.id, x1: from?.x ?? 0, y1: from?.y ?? 0, x2: to?.x ?? 0, y2: to?.y ?? 0 };
-      });
-      const hitLink = !hitNode ? hitTestLine(mx, my, linkLines) : null;
-
       hoveredId = hitNode?.id ?? null;
-      hoveredLinkId = hitLink?.id ?? null;
-
-      if (hitNode) setCursorClass("hovering-node");
-      else if (hitLink) setCursorClass("hovering-node");
-      else setCursorClass("");
+      setCursorClass(hitNode ? "hovering-node" : "");
     }
 
-    async function onMouseUp(e: MouseEvent) {
+    function onMouseUp(e: MouseEvent) {
       const [mx, my] = getCanvasCoords(e);
-
-      if (linkSourceId) {
-        // Check if dropped on a target node
-        const nodes = getScreenNodes(performance.now());
-        const target = hitTestNode(mx, my, nodes, CFG.hitPadding);
-        if (target && target.id !== linkSourceId) {
-          // Create link
-          const res = await fetch("/api/projects/links", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ fromId: linkSourceId, toId: target.id }),
-          });
-          if (res.ok) {
-            // Re-fetch to get updated links
-            const memberId = projectsRef.current[0]?.memberId;
-            if (memberId) {
-              const projRes = await fetch(`/api/projects?memberId=${memberId}`);
-              if (projRes.ok) onUpdateProjects(await projRes.json());
-            }
-          }
-        }
-        linkSourceId = null;
-        setCursorClass("");
-        return;
-      }
 
       if (dragId) {
         if (!dragMoved) {
-          // It was a click, not a drag — open detail panel
           const project = projectsRef.current.find((p) => p.id === dragId);
           if (project) onSelectProject(project);
         } else {
-          // Persist new position
           const norm = screenToNormalized(mx, my, W, H);
           fetch(`/api/projects/${dragId}`, {
             method: "PATCH",
@@ -403,32 +326,7 @@ export default function ProjectGraph({
         }
         dragId = null;
         setCursorClass("");
-        return;
       }
-
-      // Click on link to delete
-      const nodes = getScreenNodes(performance.now());
-      const hitNode = hitTestNode(mx, my, nodes, CFG.hitPadding);
-      if (!hitNode && hoveredLinkId) {
-        await fetch("/api/projects/links", {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: hoveredLinkId }),
-        });
-        const memberId = projectsRef.current[0]?.memberId;
-        if (memberId) {
-          const projRes = await fetch(`/api/projects?memberId=${memberId}`);
-          if (projRes.ok) onUpdateProjects(await projRes.json());
-        }
-        hoveredLinkId = null;
-      }
-    }
-
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Shift") shiftHeld = true;
-    }
-    function onKeyUp(e: KeyboardEvent) {
-      if (e.key === "Shift") shiftHeld = false;
     }
 
     resize();
@@ -438,8 +336,6 @@ export default function ProjectGraph({
     el.addEventListener("mousedown", onMouseDown);
     window.addEventListener("mousemove", onMouseMove);
     window.addEventListener("mouseup", onMouseUp);
-    window.addEventListener("keydown", onKeyDown);
-    window.addEventListener("keyup", onKeyUp);
     window.addEventListener("resize", resize);
 
     return () => {
@@ -447,8 +343,6 @@ export default function ProjectGraph({
       el.removeEventListener("mousedown", onMouseDown);
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("mouseup", onMouseUp);
-      window.removeEventListener("keydown", onKeyDown);
-      window.removeEventListener("keyup", onKeyUp);
       window.removeEventListener("resize", resize);
     };
   }, [memberColor, getLinks, onSelectProject, onUpdateProjects]);
