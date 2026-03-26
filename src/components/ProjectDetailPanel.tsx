@@ -25,8 +25,10 @@ export default function ProjectDetailPanel({
   const nameRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    nameRef.current?.focus();
-    nameRef.current?.select();
+    if (project.name === "new project") {
+      nameRef.current?.focus();
+      nameRef.current?.select();
+    }
   }, []);
 
   useEffect(() => {

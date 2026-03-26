@@ -240,14 +240,29 @@ export default function ProjectGraph({
           ctx!.stroke();
         }
 
-        // Name label
+        // Name label (word-wrapped)
         ctx!.fillStyle = hoveredId === n.id ? "rgba(226, 232, 240, 0.9)" : "rgba(226, 232, 240, 0.5)";
         ctx!.font = "10px 'Geist Mono', monospace";
         ctx!.textAlign = "center";
         ctx!.textBaseline = "top";
-        const maxWidth = 100;
-        const displayName = n.name.length > 14 ? n.name.slice(0, 13) + "…" : n.name;
-        ctx!.fillText(displayName, n.x, n.y + CFG.nameOffsetY, maxWidth);
+        const maxWidth = 120;
+        const words = n.name.split(" ");
+        const lines: string[] = [];
+        let currentLine = "";
+        for (const word of words) {
+          const testLine = currentLine ? currentLine + " " + word : word;
+          if (ctx!.measureText(testLine).width > maxWidth && currentLine) {
+            lines.push(currentLine);
+            currentLine = word;
+          } else {
+            currentLine = testLine;
+          }
+        }
+        if (currentLine) lines.push(currentLine);
+        const lineHeight = 13;
+        for (let li = 0; li < lines.length; li++) {
+          ctx!.fillText(lines[li], n.x, n.y + CFG.nameOffsetY + li * lineHeight);
+        }
       }
 
       // Empty state
