@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChevronRight, Trash2 } from "lucide-react";
 import ChecklistItemRow from "./ChecklistItemRow";
 import type { Workstream, ChecklistItem } from "@/lib/types";
@@ -24,13 +24,11 @@ export default function WorkstreamCard({
   const [items, setItems] = useState<ChecklistItem[]>(workstream.items || []);
   const [newItemText, setNewItemText] = useState("");
 
-  // Sync on prop change
-  if (workstream.items && workstream.items !== items && JSON.stringify(workstream.items) !== JSON.stringify(items)) {
-    setItems(workstream.items);
-  }
-  if (workstream.name !== name && !document.activeElement?.closest(`[data-ws-id="${workstream.id}"]`)) {
+  // Sync from parent on refresh (workstream prop identity changes)
+  useEffect(() => {
     setName(workstream.name);
-  }
+    setItems(workstream.items || []);
+  }, [workstream]);
 
   const completedCount = items.filter((i) => i.completed).length;
 
