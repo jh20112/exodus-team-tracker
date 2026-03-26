@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     const projects = await prisma.project.findMany({
       where: { memberId },
       include: {
-        items: { orderBy: { sortOrder: "asc" } },
+        workstreams: { include: { items: { orderBy: { sortOrder: "asc" } } }, orderBy: { sortOrder: "asc" } },
         linksFrom: true,
         linksTo: true,
       },
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
         posY: posY ?? 0.5,
       },
       include: {
-        items: true,
+        workstreams: { include: { items: true } },
         linksFrom: true,
         linksTo: true,
       },

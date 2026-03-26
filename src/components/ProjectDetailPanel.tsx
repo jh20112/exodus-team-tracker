@@ -1,15 +1,16 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { X, Plus } from "lucide-react";
 import PixelButton from "./PixelButton";
-import ChecklistItemRow from "./ChecklistItemRow";
-import { X } from "lucide-react";
-import type { Project, ChecklistItem, ProjectLink } from "@/lib/types";
+import WorkstreamCard from "./WorkstreamCard";
+import type { Project, Workstream, ProjectLink } from "@/lib/types";
 
 interface ProjectDetailPanelProps {
   project: Project;
   nodeColor: string;
   allProjects: Project[];
+  focusedWorkstreamId?: string;
   onClose: () => void;
   onUpdate: (updated: Project) => void;
   onDelete: (id: string) => void;
@@ -20,6 +21,7 @@ export default function ProjectDetailPanel({
   project,
   nodeColor,
   allProjects,
+  focusedWorkstreamId,
   onClose,
   onUpdate,
   onDelete,
@@ -27,8 +29,8 @@ export default function ProjectDetailPanel({
 }: ProjectDetailPanelProps) {
   const [name, setName] = useState(project.name);
   const [description, setDescription] = useState(project.description || "");
-  const [items, setItems] = useState<ChecklistItem[]>(project.items || []);
-  const [newItemText, setNewItemText] = useState("");
+  const [workstreams, setWorkstreams] = useState<Workstream[]>(project.workstreams || []);
+  const [expandedWsId, setExpandedWsId] = useState<string | null>(focusedWorkstreamId || null);
   const nameRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -50,7 +52,7 @@ export default function ProjectDetailPanel({
   useEffect(() => {
     setName(project.name);
     setDescription(project.description || "");
-    setItems(project.items || []);
+    setWorkstreams(project.workstreams || []);
   }, [project]);
 
   const saveField = useCallback(async (field: string, value: string) => {
@@ -65,45 +67,17 @@ export default function ProjectDetailPanel({
     }
   }, [project.id, onUpdate]);
 
-  const addItem = async () => {
-    const trimmed = newItemText.trim();
-    if (!trimmed) return;
-    setNewItemText("");
-    const res = await fetch(`/api/projects/${project.id}/items`, {
+  const addWorkstream = async () => {
+    const res = await fetch(`/api/projects/${project.id}/workstreams`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: trimmed }),
+      body: JSON.stringify({ name: "new workstream" }),
     });
     if (res.ok) {
-      const item = await res.json();
-      setItems((prev) => [...prev, item]);
-      onUpdate({ ...project, items: [...items, item] });
+      const ws = await res.json();
+      setWorkstreams((prev) => [...prev, ws]);
+      setExpandedWsId(ws.id);
     }
-  };
-
-  const toggleItem = async (id: string, completed: boolean) => {
-    setItems((prev) => prev.map((i) => (i.id === id ? { ...i, completed } : i)));
-    await fetch(`/api/projects/${project.id}/items/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ completed }),
-    });
-  };
-
-  const editItem = async (id: string, text: string) => {
-    setItems((prev) => prev.map((i) => (i.id === id ? { ...i, text } : i)));
-    await fetch(`/api/projects/${project.id}/items/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text }),
-    });
-  };
-
-  const deleteItem = async (id: string) => {
-    setItems((prev) => prev.filter((i) => i.id !== id));
-    await fetch(`/api/projects/${project.id}/items/${id}`, {
-      method: "DELETE",
-    });
   };
 
   const handleDelete = async () => {
@@ -111,9 +85,13 @@ export default function ProjectDetailPanel({
     await fetch(`/api/projects/${project.id}`, { method: "DELETE" });
   };
 
-  const completedCount = items.filter((i) => i.completed).length;
+  // Aggregate progress across all workstreams
+  const totalItems = workstreams.reduce((sum, ws) => sum + (ws.items?.length || 0), 0);
+  const completedItems = workstreams.reduce(
+    (sum, ws) => sum + (ws.items?.filter((i) => i.completed).length || 0), 0
+  );
 
-  // Gather links for this project
+  // Links
   const links: (ProjectLink & { otherName: string })[] = [
     ...(project.linksFrom || []).map((l) => ({
       ...l,
@@ -148,7 +126,7 @@ export default function ProjectDetailPanel({
       className="fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="modal-container w-full max-w-md max-h-[90vh] overflow-y-auto p-6 project-panel">
+      <div className="modal-container w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 project-panel">
         {/* Header */}
         <div className="flex items-start justify-between gap-4 mb-4">
           <input
@@ -194,57 +172,61 @@ export default function ProjectDetailPanel({
           }}
         />
 
-        {/* Checklist header */}
+        {/* Workstreams header */}
         <div className="flex items-center justify-between mb-3">
           <span
             className="font-[family-name:var(--font-pixel)] text-[10px]"
             style={{ color: "var(--text-muted)" }}
           >
-            CHECKLIST
+            WORKSTREAMS
           </span>
-          {items.length > 0 && (
-            <span
-              className="font-[family-name:var(--font-pixel)] text-[10px]"
-              style={{ color: "var(--accent-green)" }}
+          <div className="flex items-center gap-3">
+            {totalItems > 0 && (
+              <span
+                className="font-[family-name:var(--font-pixel)] text-[10px]"
+                style={{ color: "var(--accent-green)" }}
+              >
+                {completedItems}/{totalItems}
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={addWorkstream}
+              className="flex items-center gap-1 font-[family-name:var(--font-pixel)] text-[10px] transition-opacity opacity-60 hover:opacity-100"
+              style={{ color: nodeColor }}
             >
-              {completedCount}/{items.length}
-            </span>
-          )}
+              <Plus size={12} /> add
+            </button>
+          </div>
         </div>
 
-        {/* Checklist items */}
-        <div className="flex flex-col mb-3">
-          {items.map((item) => (
-            <ChecklistItemRow
-              key={item.id}
-              item={item}
-              onToggle={toggleItem}
-              onEdit={editItem}
-              onDelete={deleteItem}
+        {/* Workstream cards */}
+        <div className="mb-4">
+          {workstreams.length === 0 && (
+            <p
+              className="font-[family-name:var(--font-pixel)] text-[10px] py-4 text-center"
+              style={{ color: "var(--text-muted)" }}
+            >
+              no workstreams yet — click + to add one
+            </p>
+          )}
+          {workstreams.map((ws, i) => (
+            <WorkstreamCard
+              key={ws.id}
+              workstream={ws}
+              isExpanded={expandedWsId === ws.id}
+              accentColor={`color-mix(in oklch, ${nodeColor}, var(--accent-${["green", "amber", "rose"][i % 3]}) 30%)`}
+              onToggleExpand={() => setExpandedWsId(expandedWsId === ws.id ? null : ws.id)}
+              onRefresh={onRefresh}
             />
           ))}
         </div>
-
-        {/* Add item */}
-        <input
-          className="w-full bg-transparent border-b font-[family-name:var(--font-pixel)] text-xs outline-none py-2"
-          style={{
-            color: "var(--text-primary)",
-            borderColor: "var(--border-default)",
-          }}
-          value={newItemText}
-          onChange={(e) => setNewItemText(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") addItem();
-          }}
-          placeholder="+ add item..."
-        />
 
         {/* Links section */}
         {links.length > 0 && (
           <>
             <div
-              className="h-px mt-5 mb-4"
+              className="h-px mt-2 mb-4"
               style={{
                 background: "linear-gradient(90deg, transparent, var(--border-default), transparent)",
               }}

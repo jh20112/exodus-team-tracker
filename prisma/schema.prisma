@@ -60,20 +60,32 @@ model Project {
   posY        Float           @default(0.5)
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
-  items       ChecklistItem[]
+  workstreams Workstream[]
   linksFrom   ProjectLink[]   @relation("linkFrom")
   linksTo     ProjectLink[]   @relation("linkTo")
 }
 
+model Workstream {
+  id          String          @id @default(cuid())
+  projectId   String
+  project     Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  sortOrder   Int             @default(0)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  items       ChecklistItem[]
+}
+
 model ChecklistItem {
-  id        String   @id @default(cuid())
-  projectId String
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  text      String
-  completed Boolean  @default(false)
-  sortOrder Int      @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String      @id @default(cuid())
+  workstreamId String
+  workstream   Workstream  @relation(fields: [workstreamId], references: [id], onDelete: Cascade)
+  text         String
+  completed    Boolean     @default(false)
+  sortOrder    Int         @default(0)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
 }
 
 model ProjectLink {

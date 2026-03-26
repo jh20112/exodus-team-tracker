@@ -3,23 +3,23 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ wsId: string }> }
 ) {
   try {
-    const { id: projectId } = await params;
+    const { wsId: workstreamId } = await params;
     const { text } = await request.json();
     if (!text) {
       return NextResponse.json({ error: "text required" }, { status: 400 });
     }
 
     const maxOrder = await prisma.checklistItem.aggregate({
-      where: { projectId },
+      where: { workstreamId },
       _max: { sortOrder: true },
     });
 
     const item = await prisma.checklistItem.create({
       data: {
-        projectId,
+        workstreamId,
         text,
         sortOrder: (maxOrder._max.sortOrder ?? -1) + 1,
       },

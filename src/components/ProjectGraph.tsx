@@ -8,6 +8,7 @@ interface ProjectGraphProps {
   projects: Project[];
   memberColor: string;
   onSelectProject: (project: Project) => void;
+  onSelectWorkstream: (project: Project, workstreamId: string) => void;
   onUpdateProjects: (projects: Project[]) => void;
 }
 
@@ -22,6 +23,12 @@ const CFG = {
   hitPadding: 8,
   dragThreshold: 5,
   nameOffsetY: 30,
+  // Workstream satellite config
+  wsNodeRadius: 9,
+  wsOrbitDistance: 60,
+  wsLinkWidth: 0.6,
+  wsLinkOpacity: 0.18,
+  wsNameOffsetY: 16,
 };
 
 const COLORS = ["#8aaab8", "#b88aa0", "#8ab89a", "#b8a88a"];
@@ -34,13 +41,17 @@ interface ScreenNode {
   color: string;
   name: string;
   progress: number;
+  type: "project" | "workstream";
+  parentId?: string;
   project: Project;
+  workstreamId?: string;
 }
 
 export default function ProjectGraph({
   projects,
   memberColor,
   onSelectProject,
+  onSelectWorkstream,
   onUpdateProjects,
 }: ProjectGraphProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -77,13 +88,11 @@ export default function ProjectGraph({
     let rafId: number;
     let lastTime = 0;
 
-    // Interaction state
     let hoveredId: string | null = null;
     let dragId: string | null = null;
     let dragStartX = 0, dragStartY = 0;
     let dragMoved = false;
 
-    // Glow cache
     const glowCache = new Map<string, { canvas: HTMLCanvasElement; size: number }>();
 
     function getGlowSprite(color: string, radius: number) {
@@ -118,13 +127,19 @@ export default function ProjectGraph({
     }
 
     function getScreenNodes(t: number): ScreenNode[] {
-      return projectsRef.current.map((p, i) => {
+      const nodes: ScreenNode[] = [];
+
+      projectsRef.current.forEach((p, i) => {
         const pos = normalizedToScreen(p.posX, p.posY, W, H);
         const pulse = 1 + Math.sin(t * 0.001 * CFG.pulseSpeed + i * 1.3) * 0.04;
-        const totalItems = p.items?.length || 0;
-        const completedItems = p.items?.filter((it) => it.completed).length || 0;
         const color = p.color || COLORS[i % COLORS.length];
-        return {
+
+        // Aggregate progress from workstreams
+        const allItems = (p.workstreams || []).flatMap((ws) => ws.items || []);
+        const totalItems = allItems.length;
+        const completedItems = allItems.filter((it) => it.completed).length;
+
+        const projectNode: ScreenNode = {
           id: p.id,
           x: pos.x,
           y: pos.y,
@@ -132,40 +147,82 @@ export default function ProjectGraph({
           color,
           name: p.name,
           progress: totalItems > 0 ? completedItems / totalItems : 0,
+          type: "project",
           project: p,
         };
+        nodes.push(projectNode);
+
+        // Workstream satellite nodes
+        const wsList = p.workstreams || [];
+        wsList.forEach((ws, wi) => {
+          const angle = (2 * Math.PI * wi / wsList.length) - Math.PI / 2;
+          const wsX = pos.x + Math.cos(angle) * CFG.wsOrbitDistance;
+          const wsY = pos.y + Math.sin(angle) * CFG.wsOrbitDistance;
+          const wsPulse = 1 + Math.sin(t * 0.001 * CFG.pulseSpeed + wi * 2.1) * 0.03;
+          const wsItems = ws.items || [];
+          const wsCompleted = wsItems.filter((it) => it.completed).length;
+
+          nodes.push({
+            id: `ws-${ws.id}`,
+            x: wsX,
+            y: wsY,
+            radius: CFG.wsNodeRadius * wsPulse * (hoveredId === `ws-${ws.id}` ? CFG.hoverScale : 1),
+            color,
+            name: ws.name,
+            progress: wsItems.length > 0 ? wsCompleted / wsItems.length : 0,
+            type: "workstream",
+            parentId: p.id,
+            project: p,
+            workstreamId: ws.id,
+          });
+        });
       });
+
+      return nodes;
     }
 
     function render(t: number) {
       ctx!.clearRect(0, 0, W, H);
-      const nodes = getScreenNodes(t);
+      const allNodes = getScreenNodes(t);
+      const projectNodes = allNodes.filter((n) => n.type === "project");
+      const wsNodes = allNodes.filter((n) => n.type === "workstream");
       const links = getLinks();
 
-      // Build link screen coords
+      // 1. Draw workstream-to-parent connector lines
+      ctx!.lineWidth = CFG.wsLinkWidth;
+      for (const ws of wsNodes) {
+        const parent = projectNodes.find((n) => n.id === ws.parentId);
+        if (!parent) continue;
+        ctx!.strokeStyle = `rgba(180, 200, 210, ${CFG.wsLinkOpacity})`;
+        ctx!.beginPath();
+        ctx!.moveTo(parent.x, parent.y);
+        ctx!.lineTo(ws.x, ws.y);
+        ctx!.stroke();
+      }
+
+      // 2. Draw project-to-project links
       const linkLines = links.map((l) => {
-        const from = nodes.find((n) => n.id === l.fromId);
-        const to = nodes.find((n) => n.id === l.toId);
+        const from = projectNodes.find((n) => n.id === l.fromId);
+        const to = projectNodes.find((n) => n.id === l.toId);
         return {
           id: l.id,
           x1: from?.x ?? 0, y1: from?.y ?? 0,
           x2: to?.x ?? 0, y2: to?.y ?? 0,
           description: l.description,
+          valid: !!from && !!to,
         };
-      }).filter((l) => nodes.some((n) => n.x === l.x1 && n.y === l.y1) &&
-                       nodes.some((n) => n.x === l.x2 && n.y === l.y2));
+      }).filter((l) => l.valid);
 
-      // Draw connection lines
+      ctx!.lineWidth = CFG.linkWidth;
       for (const l of linkLines) {
         ctx!.strokeStyle = `rgba(180, 200, 210, ${CFG.linkOpacity})`;
-        ctx!.lineWidth = CFG.linkWidth;
         ctx!.beginPath();
         ctx!.moveTo(l.x1, l.y1);
         ctx!.lineTo(l.x2, l.y2);
         ctx!.stroke();
       }
 
-      // Glow on links
+      // Glow on project links
       ctx!.lineWidth = CFG.glowLinkWidth;
       for (const l of linkLines) {
         ctx!.strokeStyle = `rgba(160, 185, 200, ${CFG.glowLinkOpacity})`;
@@ -175,7 +232,7 @@ export default function ProjectGraph({
         ctx!.stroke();
       }
 
-      // Link description labels at midpoint
+      // Link description labels
       ctx!.font = "9px 'Geist Mono', monospace";
       ctx!.textAlign = "center";
       ctx!.textBaseline = "middle";
@@ -188,13 +245,11 @@ export default function ProjectGraph({
         }
       }
 
-      // Draw nodes
-      for (const n of nodes) {
-        // Glow sprite
+      // 3. Draw project nodes
+      for (const n of projectNodes) {
         const glow = getGlowSprite(n.color, n.radius);
         ctx!.drawImage(glow.canvas, n.x - glow.size, n.y - glow.size, glow.size * 2, glow.size * 2);
 
-        // Solid circle
         ctx!.globalAlpha = 0.9;
         ctx!.fillStyle = n.color;
         ctx!.beginPath();
@@ -202,7 +257,7 @@ export default function ProjectGraph({
         ctx!.fill();
         ctx!.globalAlpha = 1.0;
 
-        // Progress ring
+        // Progress ring (aggregate)
         if (n.progress > 0) {
           ctx!.strokeStyle = `rgba(140, 200, 160, 0.8)`;
           ctx!.lineWidth = 2.5;
@@ -210,9 +265,8 @@ export default function ProjectGraph({
           ctx!.arc(n.x, n.y, n.radius + 4, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * n.progress);
           ctx!.stroke();
         }
-
-        // Background ring track
-        if (n.project.items && n.project.items.length > 0) {
+        const allItems = (n.project.workstreams || []).flatMap((ws) => ws.items || []);
+        if (allItems.length > 0) {
           ctx!.strokeStyle = `rgba(140, 200, 160, 0.15)`;
           ctx!.lineWidth = 2.5;
           ctx!.beginPath();
@@ -220,7 +274,7 @@ export default function ProjectGraph({
           ctx!.stroke();
         }
 
-        // Name label (word-wrapped)
+        // Name label
         ctx!.fillStyle = hoveredId === n.id ? "rgba(226, 232, 240, 1.0)" : "rgba(226, 232, 240, 0.7)";
         ctx!.font = "10px 'Geist Mono', monospace";
         ctx!.textAlign = "center";
@@ -245,8 +299,38 @@ export default function ProjectGraph({
         }
       }
 
+      // 4. Draw workstream nodes
+      for (const n of wsNodes) {
+        const glow = getGlowSprite(n.color, n.radius);
+        ctx!.drawImage(glow.canvas, n.x - glow.size, n.y - glow.size, glow.size * 2, glow.size * 2);
+
+        ctx!.globalAlpha = 0.7;
+        ctx!.fillStyle = n.color;
+        ctx!.beginPath();
+        ctx!.arc(n.x, n.y, n.radius, 0, Math.PI * 2);
+        ctx!.fill();
+        ctx!.globalAlpha = 1.0;
+
+        // Mini progress ring
+        if (n.progress > 0) {
+          ctx!.strokeStyle = `rgba(140, 200, 160, 0.7)`;
+          ctx!.lineWidth = 1.5;
+          ctx!.beginPath();
+          ctx!.arc(n.x, n.y, n.radius + 3, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * n.progress);
+          ctx!.stroke();
+        }
+
+        // Name label
+        ctx!.fillStyle = hoveredId === n.id ? "rgba(226, 232, 240, 0.8)" : "rgba(226, 232, 240, 0.4)";
+        ctx!.font = "8px 'Geist Mono', monospace";
+        ctx!.textAlign = "center";
+        ctx!.textBaseline = "top";
+        const displayName = n.name.length > 16 ? n.name.slice(0, 15) + "…" : n.name;
+        ctx!.fillText(displayName, n.x, n.y + CFG.wsNameOffsetY, 80);
+      }
+
       // Empty state
-      if (nodes.length === 0) {
+      if (projectNodes.length === 0) {
         ctx!.fillStyle = "rgba(85, 85, 85, 0.6)";
         ctx!.font = "12px 'Geist Mono', monospace";
         ctx!.textAlign = "center";
@@ -263,7 +347,6 @@ export default function ProjectGraph({
       rafId = requestAnimationFrame(loop);
     }
 
-    // --- Mouse handlers ---
     function getCanvasCoords(e: MouseEvent): [number, number] {
       const rect = containerEl!.getBoundingClientRect();
       return [e.clientX - rect.left, e.clientY - rect.top];
@@ -271,15 +354,19 @@ export default function ProjectGraph({
 
     function onMouseDown(e: MouseEvent) {
       const [mx, my] = getCanvasCoords(e);
-      const nodes = getScreenNodes(performance.now());
-      const hit = hitTestNode(mx, my, nodes, CFG.hitPadding);
+      const allNodes = getScreenNodes(performance.now());
+      const hit = hitTestNode(mx, my, allNodes, CFG.hitPadding);
 
       if (hit) {
-        dragId = hit.id;
-        dragStartX = mx;
-        dragStartY = my;
-        dragMoved = false;
-        setCursorClass("dragging-node");
+        const node = allNodes.find((n) => n.id === hit.id) as ScreenNode | undefined;
+        if (node?.type === "project") {
+          dragId = hit.id;
+          dragStartX = mx;
+          dragStartY = my;
+          dragMoved = false;
+          setCursorClass("dragging-node");
+        }
+        // Workstream nodes are not draggable — click handled in mouseUp
       }
     }
 
@@ -302,9 +389,8 @@ export default function ProjectGraph({
         return;
       }
 
-      // Hover detection
-      const nodes = getScreenNodes(performance.now());
-      const hitNode = hitTestNode(mx, my, nodes, CFG.hitPadding);
+      const allNodes = getScreenNodes(performance.now());
+      const hitNode = hitTestNode(mx, my, allNodes, CFG.hitPadding);
       hoveredId = hitNode?.id ?? null;
       setCursorClass(hitNode ? "hovering-node" : "");
     }
@@ -326,6 +412,17 @@ export default function ProjectGraph({
         }
         dragId = null;
         setCursorClass("");
+        return;
+      }
+
+      // Check for workstream node click
+      const allNodes = getScreenNodes(performance.now());
+      const hit = hitTestNode(mx, my, allNodes, CFG.hitPadding);
+      if (hit) {
+        const node = allNodes.find((n) => n.id === hit.id) as ScreenNode | undefined;
+        if (node?.type === "workstream" && node.workstreamId) {
+          onSelectWorkstream(node.project, node.workstreamId);
+        }
       }
     }
 
@@ -345,7 +442,7 @@ export default function ProjectGraph({
       window.removeEventListener("mouseup", onMouseUp);
       window.removeEventListener("resize", resize);
     };
-  }, [memberColor, getLinks, onSelectProject, onUpdateProjects]);
+  }, [memberColor, getLinks, onSelectProject, onSelectWorkstream, onUpdateProjects]);
 
   return (
     <div ref={containerRef} className="w-full h-full relative">

@@ -10,7 +10,7 @@ export async function GET(
     const project = await prisma.project.findUnique({
       where: { id },
       include: {
-        items: { orderBy: { sortOrder: "asc" } },
+        workstreams: { include: { items: { orderBy: { sortOrder: "asc" } } }, orderBy: { sortOrder: "asc" } },
         linksFrom: true,
         linksTo: true,
       },
@@ -37,7 +37,7 @@ export async function PATCH(
       where: { id },
       data,
       include: {
-        items: { orderBy: { sortOrder: "asc" } },
+        workstreams: { include: { items: { orderBy: { sortOrder: "asc" } } }, orderBy: { sortOrder: "asc" } },
         linksFrom: true,
         linksTo: true,
       },

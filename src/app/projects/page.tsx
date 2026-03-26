@@ -17,6 +17,7 @@ export default function ProjectsPage() {
   const [ready, setReady] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [focusedWorkstreamId, setFocusedWorkstreamId] = useState<string | undefined>(undefined);
   const [showLinkModal, setShowLinkModal] = useState(false);
 
   useEffect(() => {
@@ -60,6 +61,12 @@ export default function ProjectsPage() {
   };
 
   const handleSelectProject = useCallback((project: Project) => {
+    setFocusedWorkstreamId(undefined);
+    setSelectedProject(project);
+  }, []);
+
+  const handleSelectWorkstream = useCallback((project: Project, workstreamId: string) => {
+    setFocusedWorkstreamId(workstreamId);
     setSelectedProject(project);
   }, []);
 
@@ -85,9 +92,17 @@ export default function ProjectsPage() {
   const refreshProjects = useCallback(async () => {
     if (!selected) return;
     const res = await fetch(`/api/projects?memberId=${selected.id}`);
-    if (res.ok) setProjects(await res.json());
+    if (res.ok) {
+      const updated = await res.json();
+      setProjects(updated);
+      // Keep selected project in sync
+      if (selectedProject) {
+        const refreshed = updated.find((p: Project) => p.id === selectedProject.id);
+        if (refreshed) setSelectedProject(refreshed);
+      }
+    }
     setShowLinkModal(false);
-  }, [selected]);
+  }, [selected, selectedProject]);
 
   if (!ready || !selected) return null;
 
@@ -134,6 +149,7 @@ export default function ProjectsPage() {
           projects={projects}
           memberColor={selected.color}
           onSelectProject={handleSelectProject}
+          onSelectWorkstream={handleSelectWorkstream}
           onUpdateProjects={handleUpdateProjects}
         />
       </div>
@@ -144,7 +160,8 @@ export default function ProjectsPage() {
           project={selectedProject}
           nodeColor={selectedProject.color || NODE_COLORS[projects.indexOf(selectedProject) % NODE_COLORS.length]}
           allProjects={projects}
-          onClose={() => setSelectedProject(null)}
+          focusedWorkstreamId={focusedWorkstreamId}
+          onClose={() => { setSelectedProject(null); setFocusedWorkstreamId(undefined); }}
           onUpdate={handleProjectUpdate}
           onDelete={handleProjectDelete}
           onRefresh={refreshProjects}

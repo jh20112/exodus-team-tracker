@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string; itemId: string }> }
+  { params }: { params: Promise<{ wsId: string; itemId: string }> }
 ) {
   try {
     const { itemId } = await params;
@@ -23,7 +23,7 @@ export async function PATCH(
 
 export async function DELETE(
   _request: NextRequest,
-  { params }: { params: Promise<{ id: string; itemId: string }> }
+  { params }: { params: Promise<{ wsId: string; itemId: string }> }
 ) {
   try {
     const { itemId } = await params;

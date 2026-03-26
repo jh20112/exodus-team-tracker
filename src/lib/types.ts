@@ -39,14 +39,25 @@ export interface Project {
   posY: number;
   createdAt: string;
   updatedAt: string;
-  items?: ChecklistItem[];
+  workstreams?: Workstream[];
   linksFrom?: ProjectLink[];
   linksTo?: ProjectLink[];
 }
 
-export interface ChecklistItem {
+export interface Workstream {
   id: string;
   projectId: string;
+  name: string;
+  description: string | null;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+  items?: ChecklistItem[];
+}
+
+export interface ChecklistItem {
+  id: string;
+  workstreamId: string;
   text: string;
   completed: boolean;
   sortOrder: number;

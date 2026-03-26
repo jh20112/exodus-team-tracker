@@ -301,6 +301,19 @@ body {
 .checklist-checkbox.checked { background: var(--accent-green); border-color: var(--accent-green); }
 .checklist-text-done { text-decoration: line-through; color: var(--text-muted); }
 
+/* Workstream card expand/collapse */
+.ws-card-content {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.ws-card-content.expanded {
+  grid-template-rows: 1fr;
+}
+.ws-card-inner {
+  overflow: hidden;
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
