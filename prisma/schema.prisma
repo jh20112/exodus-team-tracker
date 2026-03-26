@@ -61,8 +61,6 @@ model Project {
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
   workstreams Workstream[]
-  linksFrom   ProjectLink[]   @relation("linkFrom")
-  linksTo     ProjectLink[]   @relation("linkTo")
 }
 
 model Workstream {
@@ -91,10 +89,10 @@ model ChecklistItem {
 model ProjectLink {
   id          String  @id @default(cuid())
   fromId      String
+  fromType    String  @default("project")
   toId        String
+  toType      String  @default("project")
   description String?
-  from        Project @relation("linkFrom", fields: [fromId], references: [id], onDelete: Cascade)
-  to          Project @relation("linkTo", fields: [toId], references: [id], onDelete: Cascade)
 
   @@unique([fromId, toId])
 }

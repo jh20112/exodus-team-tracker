@@ -6,6 +6,7 @@ import type { Project, ProjectLink } from "@/lib/types";
 
 interface ProjectGraphProps {
   projects: Project[];
+  links: ProjectLink[];
   memberColor: string;
   onSelectProject: (project: Project) => void;
   onSelectWorkstream: (project: Project, workstreamId: string) => void;
@@ -49,6 +50,7 @@ interface ScreenNode {
 
 export default function ProjectGraph({
   projects,
+  links,
   memberColor,
   onSelectProject,
   onSelectWorkstream,
@@ -58,24 +60,15 @@ export default function ProjectGraph({
   const containerRef = useRef<HTMLDivElement>(null);
   const projectsRef = useRef(projects);
   const [cursorClass, setCursorClass] = useState("");
+  const linksRef = useRef(links);
 
   useEffect(() => {
     projectsRef.current = projects;
   }, [projects]);
 
-  const getLinks = useCallback((): ProjectLink[] => {
-    const seen = new Set<string>();
-    const links: ProjectLink[] = [];
-    for (const p of projectsRef.current) {
-      for (const l of [...(p.linksFrom || []), ...(p.linksTo || [])]) {
-        if (!seen.has(l.id)) {
-          seen.add(l.id);
-          links.push(l);
-        }
-      }
-    }
-    return links;
-  }, []);
+  useEffect(() => {
+    linksRef.current = links;
+  }, [links]);
 
   useEffect(() => {
     const canvasEl = canvasRef.current;
@@ -186,7 +179,7 @@ export default function ProjectGraph({
       const allNodes = getScreenNodes(t);
       const projectNodes = allNodes.filter((n) => n.type === "project");
       const wsNodes = allNodes.filter((n) => n.type === "workstream");
-      const links = getLinks();
+      const links = linksRef.current;
 
       // 1. Draw workstream-to-parent connector lines
       ctx!.lineWidth = CFG.wsLinkWidth;
@@ -200,10 +193,15 @@ export default function ProjectGraph({
         ctx!.stroke();
       }
 
-      // 2. Draw project-to-project links
+      // 2. Draw cross-node links (project-to-project, workstream-to-workstream, etc.)
+      // Build a lookup of all node positions by their real ID
+      const nodeById = new Map<string, { x: number; y: number }>();
+      for (const n of projectNodes) nodeById.set(n.id, n);
+      for (const n of wsNodes) nodeById.set(n.workstreamId || n.id, n);
+
       const linkLines = links.map((l) => {
-        const from = projectNodes.find((n) => n.id === l.fromId);
-        const to = projectNodes.find((n) => n.id === l.toId);
+        const from = nodeById.get(l.fromId);
+        const to = nodeById.get(l.toId);
         return {
           id: l.id,
           x1: from?.x ?? 0, y1: from?.y ?? 0,
@@ -442,7 +440,7 @@ export default function ProjectGraph({
       window.removeEventListener("mouseup", onMouseUp);
       window.removeEventListener("resize", resize);
     };
-  }, [memberColor, getLinks, onSelectProject, onSelectWorkstream, onUpdateProjects]);
+  }, [memberColor, links, onSelectProject, onSelectWorkstream, onUpdateProjects]);
 
   return (
     <div ref={containerRef} className="w-full h-full relative">

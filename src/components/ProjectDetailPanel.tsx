@@ -10,6 +10,7 @@ interface ProjectDetailPanelProps {
   project: Project;
   nodeColor: string;
   allProjects: Project[];
+  links: ProjectLink[];
   focusedWorkstreamId?: string;
   onClose: () => void;
   onUpdate: (updated: Project) => void;
@@ -21,6 +22,7 @@ export default function ProjectDetailPanel({
   project,
   nodeColor,
   allProjects,
+  links: allLinks,
   focusedWorkstreamId,
   onClose,
   onUpdate,
@@ -91,17 +93,24 @@ export default function ProjectDetailPanel({
     (sum, ws) => sum + (ws.items?.filter((i) => i.completed).length || 0), 0
   );
 
-  // Links
-  const links: (ProjectLink & { otherName: string })[] = [
-    ...(project.linksFrom || []).map((l) => ({
-      ...l,
-      otherName: allProjects.find((p) => p.id === l.toId)?.name || "unknown",
-    })),
-    ...(project.linksTo || []).map((l) => ({
-      ...l,
-      otherName: allProjects.find((p) => p.id === l.fromId)?.name || "unknown",
-    })),
-  ];
+  // Links — find all links that involve this project or its workstreams
+  const myIds = new Set([project.id, ...(project.workstreams || []).map((ws) => ws.id)]);
+
+  // Build a name lookup for all projects and workstreams
+  const nameById = new Map<string, string>();
+  for (const p of allProjects) {
+    nameById.set(p.id, p.name);
+    for (const ws of p.workstreams || []) {
+      nameById.set(ws.id, `${p.name} → ${ws.name}`);
+    }
+  }
+
+  const links = allLinks
+    .filter((l) => myIds.has(l.fromId) || myIds.has(l.toId))
+    .map((l) => {
+      const otherId = myIds.has(l.fromId) ? l.toId : l.fromId;
+      return { ...l, otherName: nameById.get(otherId) || "unknown" };
+    });
 
   const updateLinkDescription = async (linkId: string, desc: string) => {
     await fetch("/api/projects/links", {

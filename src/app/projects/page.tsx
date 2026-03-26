@@ -7,7 +7,7 @@ import ProjectGraph from "@/components/ProjectGraph";
 import ProjectDetailPanel from "@/components/ProjectDetailPanel";
 import NewLinkModal from "@/components/NewLinkModal";
 import PixelButton from "@/components/PixelButton";
-import type { Project } from "@/lib/types";
+import type { Project, ProjectLink } from "@/lib/types";
 
 const NODE_COLORS = ["#8aaab8", "#b88aa0", "#8ab89a", "#b8a88a"];
 
@@ -16,6 +16,7 @@ export default function ProjectsPage() {
   const { selected, loaded } = useCharacterSelection();
   const [ready, setReady] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [links, setLinks] = useState<ProjectLink[]>([]);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [focusedWorkstreamId, setFocusedWorkstreamId] = useState<string | undefined>(undefined);
   const [showLinkModal, setShowLinkModal] = useState(false);
@@ -28,18 +29,34 @@ export default function ProjectsPage() {
     }
   }, [loaded, selected, router]);
 
-  // Fetch projects
+  const fetchLinks = useCallback(async (projs: Project[]) => {
+    // Collect all project + workstream IDs
+    const ids: string[] = [];
+    for (const p of projs) {
+      ids.push(p.id);
+      for (const ws of p.workstreams || []) {
+        ids.push(ws.id);
+      }
+    }
+    if (ids.length === 0) { setLinks([]); return; }
+    const res = await fetch(`/api/projects/links?ids=${ids.join(",")}`);
+    if (res.ok) setLinks(await res.json());
+  }, []);
+
+  // Fetch projects + links
   useEffect(() => {
     if (!selected) return;
     fetch(`/api/projects?memberId=${selected.id}`)
       .then((r) => r.json())
-      .then(setProjects)
+      .then((projs) => {
+        setProjects(projs);
+        fetchLinks(projs);
+      })
       .catch(console.error);
-  }, [selected]);
+  }, [selected, fetchLinks]);
 
   const createProject = async () => {
     if (!selected) return;
-    // Random position near center
     const posX = 0.35 + Math.random() * 0.3;
     const posY = 0.3 + Math.random() * 0.4;
 
@@ -72,7 +89,6 @@ export default function ProjectsPage() {
 
   const handleUpdateProjects = useCallback((updated: Project[]) => {
     setProjects(updated);
-    // Keep selectedProject in sync if it was updated
     if (selectedProject) {
       const refreshed = updated.find((p) => p.id === selectedProject.id);
       if (refreshed) setSelectedProject(refreshed);
@@ -89,20 +105,23 @@ export default function ProjectsPage() {
     setSelectedProject(null);
   }, []);
 
-  const refreshProjects = useCallback(async () => {
+  const refreshAll = useCallback(async () => {
     if (!selected) return;
     const res = await fetch(`/api/projects?memberId=${selected.id}`);
     if (res.ok) {
       const updated = await res.json();
       setProjects(updated);
-      // Keep selected project in sync
+      fetchLinks(updated);
       if (selectedProject) {
         const refreshed = updated.find((p: Project) => p.id === selectedProject.id);
         if (refreshed) setSelectedProject(refreshed);
       }
     }
     setShowLinkModal(false);
-  }, [selected, selectedProject]);
+  }, [selected, selectedProject, fetchLinks]);
+
+  // Count linkable nodes (projects + workstreams)
+  const linkableCount = projects.length + projects.reduce((sum, p) => sum + (p.workstreams?.length || 0), 0);
 
   if (!ready || !selected) return null;
 
@@ -135,7 +154,7 @@ export default function ProjectsPage() {
           <PixelButton onClick={createProject} color="var(--accent)">
             + new project
           </PixelButton>
-          {projects.length >= 2 && (
+          {linkableCount >= 2 && (
             <PixelButton onClick={() => setShowLinkModal(true)} color="var(--text-muted)">
               + new link
             </PixelButton>
@@ -147,6 +166,7 @@ export default function ProjectsPage() {
       <div className="relative z-10" style={{ height: "calc(100vh - 80px)" }}>
         <ProjectGraph
           projects={projects}
+          links={links}
           memberColor={selected.color}
           onSelectProject={handleSelectProject}
           onSelectWorkstream={handleSelectWorkstream}
@@ -160,11 +180,12 @@ export default function ProjectsPage() {
           project={selectedProject}
           nodeColor={selectedProject.color || NODE_COLORS[projects.indexOf(selectedProject) % NODE_COLORS.length]}
           allProjects={projects}
+          links={links}
           focusedWorkstreamId={focusedWorkstreamId}
           onClose={() => { setSelectedProject(null); setFocusedWorkstreamId(undefined); }}
           onUpdate={handleProjectUpdate}
           onDelete={handleProjectDelete}
-          onRefresh={refreshProjects}
+          onRefresh={refreshAll}
         />
       )}
       {/* Link modal */}
@@ -172,7 +193,7 @@ export default function ProjectsPage() {
         <NewLinkModal
           projects={projects}
           onClose={() => setShowLinkModal(false)}
-          onCreated={refreshProjects}
+          onCreated={refreshAll}
         />
       )}
     </main>

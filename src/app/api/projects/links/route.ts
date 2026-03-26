@@ -1,20 +1,46 @@
 import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 
+export async function GET(request: NextRequest) {
+  try {
+    const ids = request.nextUrl.searchParams.get("ids");
+    if (!ids) {
+      return NextResponse.json({ error: "ids required" }, { status: 400 });
+    }
+    const idList = ids.split(",");
+
+    const links = await prisma.projectLink.findMany({
+      where: {
+        OR: [
+          { fromId: { in: idList } },
+          { toId: { in: idList } },
+        ],
+      },
+    });
+
+    return NextResponse.json(links);
+  } catch (error) {
+    console.error("Failed to fetch links:", error);
+    return NextResponse.json({ error: "Failed to fetch links" }, { status: 500 });
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const { fromId, toId, description } = await request.json();
+    const { fromId, fromType, toId, toType, description } = await request.json();
     if (!fromId || !toId) {
       return NextResponse.json({ error: "fromId and toId required" }, { status: 400 });
     }
 
     // Normalize ordering so we don't get duplicate reverse links
-    const [a, b] = fromId < toId ? [fromId, toId] : [toId, fromId];
+    const [a, aType, b, bType] = fromId < toId
+      ? [fromId, fromType || "project", toId, toType || "project"]
+      : [toId, toType || "project", fromId, fromType || "project"];
 
     const link = await prisma.projectLink.upsert({
       where: { fromId_toId: { fromId: a, toId: b } },
-      update: { description: description || null },
-      create: { fromId: a, toId: b, description: description || null },
+      update: { description: description || null, fromType: aType, toType: bType },
+      create: { fromId: a, fromType: aType, toId: b, toType: bType, description: description || null },
     });
 
     return NextResponse.json(link);

@@ -1,8 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import PixelButton from "./PixelButton";
 import type { Project } from "@/lib/types";
+
+interface LinkOption {
+  id: string;
+  label: string;
+  type: "project" | "workstream";
+}
 
 interface NewLinkModalProps {
   projects: Project[];
@@ -16,6 +22,18 @@ export default function NewLinkModal({ projects, onClose, onCreated }: NewLinkMo
   const [description, setDescription] = useState("");
   const [saving, setSaving] = useState(false);
 
+  // Build flat list of linkable items (projects + workstreams)
+  const options: LinkOption[] = useMemo(() => {
+    const opts: LinkOption[] = [];
+    for (const p of projects) {
+      opts.push({ id: p.id, label: p.name, type: "project" });
+      for (const ws of p.workstreams || []) {
+        opts.push({ id: ws.id, label: `${p.name} → ${ws.name}`, type: "workstream" });
+      }
+    }
+    return opts;
+  }, [projects]);
+
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -26,13 +44,22 @@ export default function NewLinkModal({ projects, onClose, onCreated }: NewLinkMo
 
   const canSave = fromId && toId && fromId !== toId;
 
+  const fromOption = options.find((o) => o.id === fromId);
+  const toOption = options.find((o) => o.id === toId);
+
   const handleSubmit = async () => {
     if (!canSave) return;
     setSaving(true);
     const res = await fetch("/api/projects/links", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ fromId, toId, description: description.trim() || null }),
+      body: JSON.stringify({
+        fromId,
+        fromType: fromOption?.type || "project",
+        toId,
+        toType: toOption?.type || "project",
+        description: description.trim() || null,
+      }),
     });
     setSaving(false);
     if (res.ok) onCreated();
@@ -78,9 +105,9 @@ export default function NewLinkModal({ projects, onClose, onCreated }: NewLinkMo
             value={fromId}
             onChange={(e) => setFromId(e.target.value)}
           >
-            <option value="">select a project...</option>
-            {projects.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
+            <option value="">select...</option>
+            {options.map((o) => (
+              <option key={o.id} value={o.id}>{o.label}</option>
             ))}
           </select>
         </div>
@@ -102,9 +129,9 @@ export default function NewLinkModal({ projects, onClose, onCreated }: NewLinkMo
             value={toId}
             onChange={(e) => setToId(e.target.value)}
           >
-            <option value="">select a project...</option>
-            {projects.filter((p) => p.id !== fromId).map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
+            <option value="">select...</option>
+            {options.filter((o) => o.id !== fromId).map((o) => (
+              <option key={o.id} value={o.id}>{o.label}</option>
             ))}
           </select>
         </div>

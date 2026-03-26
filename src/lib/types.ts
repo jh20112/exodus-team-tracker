@@ -40,8 +40,6 @@ export interface Project {
   createdAt: string;
   updatedAt: string;
   workstreams?: Workstream[];
-  linksFrom?: ProjectLink[];
-  linksTo?: ProjectLink[];
 }
 
 export interface Workstream {
@@ -68,6 +66,8 @@ export interface ChecklistItem {
 export interface ProjectLink {
   id: string;
   fromId: string;
+  fromType: "project" | "workstream";
   toId: string;
+  toType: "project" | "workstream";
   description: string | null;
 }

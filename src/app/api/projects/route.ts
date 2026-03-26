@@ -12,8 +12,6 @@ export async function GET(request: NextRequest) {
       where: { memberId },
       include: {
         workstreams: { include: { items: { orderBy: { sortOrder: "asc" } } }, orderBy: { sortOrder: "asc" } },
-        linksFrom: true,
-        linksTo: true,
       },
       orderBy: { createdAt: "asc" },
     });
@@ -41,8 +39,6 @@ export async function POST(request: NextRequest) {
       },
       include: {
         workstreams: { include: { items: true } },
-        linksFrom: true,
-        linksTo: true,
       },
     });
 

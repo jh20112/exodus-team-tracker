@@ -11,8 +11,6 @@ export async function GET(
       where: { id },
       include: {
         workstreams: { include: { items: { orderBy: { sortOrder: "asc" } } }, orderBy: { sortOrder: "asc" } },
-        linksFrom: true,
-        linksTo: true,
       },
     });
     if (!project) {
@@ -38,8 +36,6 @@ export async function PATCH(
       data,
       include: {
         workstreams: { include: { items: { orderBy: { sortOrder: "asc" } } }, orderBy: { sortOrder: "asc" } },
-        linksFrom: true,
-        linksTo: true,
       },
     });
 
