@@ -24,6 +24,25 @@ export async function POST(request: NextRequest) {
   }
 }
 
+export async function PATCH(request: NextRequest) {
+  try {
+    const { id, description } = await request.json();
+    if (!id) {
+      return NextResponse.json({ error: "id required" }, { status: 400 });
+    }
+
+    const link = await prisma.projectLink.update({
+      where: { id },
+      data: { description: description ?? null },
+    });
+
+    return NextResponse.json(link);
+  } catch (error) {
+    console.error("Failed to update link:", error);
+    return NextResponse.json({ error: "Failed to update link" }, { status: 500 });
+  }
+}
+
 export async function DELETE(request: NextRequest) {
   try {
     const { id } = await request.json();

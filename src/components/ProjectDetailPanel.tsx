@@ -3,22 +3,27 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import PixelButton from "./PixelButton";
 import ChecklistItemRow from "./ChecklistItemRow";
-import type { Project, ChecklistItem } from "@/lib/types";
+import { X } from "lucide-react";
+import type { Project, ChecklistItem, ProjectLink } from "@/lib/types";
 
 interface ProjectDetailPanelProps {
   project: Project;
   nodeColor: string;
+  allProjects: Project[];
   onClose: () => void;
   onUpdate: (updated: Project) => void;
   onDelete: (id: string) => void;
+  onRefresh: () => void;
 }
 
 export default function ProjectDetailPanel({
   project,
   nodeColor,
+  allProjects,
   onClose,
   onUpdate,
   onDelete,
+  onRefresh,
 }: ProjectDetailPanelProps) {
   const [name, setName] = useState(project.name);
   const [description, setDescription] = useState(project.description || "");
@@ -107,6 +112,36 @@ export default function ProjectDetailPanel({
   };
 
   const completedCount = items.filter((i) => i.completed).length;
+
+  // Gather links for this project
+  const links: (ProjectLink & { otherName: string })[] = [
+    ...(project.linksFrom || []).map((l) => ({
+      ...l,
+      otherName: allProjects.find((p) => p.id === l.toId)?.name || "unknown",
+    })),
+    ...(project.linksTo || []).map((l) => ({
+      ...l,
+      otherName: allProjects.find((p) => p.id === l.fromId)?.name || "unknown",
+    })),
+  ];
+
+  const updateLinkDescription = async (linkId: string, desc: string) => {
+    await fetch("/api/projects/links", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: linkId, description: desc.trim() || null }),
+    });
+    onRefresh();
+  };
+
+  const deleteLink = async (linkId: string) => {
+    await fetch("/api/projects/links", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: linkId }),
+    });
+    onRefresh();
+  };
 
   return (
     <div
@@ -205,6 +240,36 @@ export default function ProjectDetailPanel({
           placeholder="+ add item..."
         />
 
+        {/* Links section */}
+        {links.length > 0 && (
+          <>
+            <div
+              className="h-px mt-5 mb-4"
+              style={{
+                background: "linear-gradient(90deg, transparent, var(--border-default), transparent)",
+              }}
+            />
+            <div className="flex items-center justify-between mb-3">
+              <span
+                className="font-[family-name:var(--font-pixel)] text-[10px]"
+                style={{ color: "var(--text-muted)" }}
+              >
+                LINKS
+              </span>
+            </div>
+            <div className="flex flex-col gap-3 mb-3">
+              {links.map((link) => (
+                <LinkRow
+                  key={link.id}
+                  link={link}
+                  onUpdateDescription={updateLinkDescription}
+                  onDelete={deleteLink}
+                />
+              ))}
+            </div>
+          </>
+        )}
+
         {/* Footer */}
         <div className="flex justify-end mt-6">
           <PixelButton onClick={handleDelete} color="var(--accent-rose)">
@@ -212,6 +277,53 @@ export default function ProjectDetailPanel({
           </PixelButton>
         </div>
       </div>
+    </div>
+  );
+}
+
+function LinkRow({
+  link,
+  onUpdateDescription,
+  onDelete,
+}: {
+  link: { id: string; description: string | null; otherName: string };
+  onUpdateDescription: (id: string, desc: string) => void;
+  onDelete: (id: string) => void;
+}) {
+  const [desc, setDesc] = useState(link.description || "");
+
+  return (
+    <div className="group flex flex-col gap-1.5 p-2" style={{ background: "var(--bg-dark)", border: "1px solid var(--border-subtle)" }}>
+      <div className="flex items-center justify-between">
+        <span
+          className="font-[family-name:var(--font-pixel)] text-[10px]"
+          style={{ color: "var(--accent)" }}
+        >
+          → {link.otherName}
+        </span>
+        <button
+          type="button"
+          className="opacity-0 group-hover:opacity-100 transition-opacity"
+          style={{ color: "var(--text-muted)" }}
+          onClick={() => onDelete(link.id)}
+          aria-label="Delete link"
+        >
+          <X size={12} />
+        </button>
+      </div>
+      <input
+        className="w-full bg-transparent font-[family-name:var(--font-pixel)] text-[10px] outline-none"
+        style={{ color: "var(--text-muted)" }}
+        value={desc}
+        onChange={(e) => setDesc(e.target.value)}
+        onBlur={() => {
+          if (desc !== (link.description || "")) onUpdateDescription(link.id, desc);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+        }}
+        placeholder="describe this connection..."
+      />
     </div>
   );
 }

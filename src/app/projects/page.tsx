@@ -143,9 +143,11 @@ export default function ProjectsPage() {
         <ProjectDetailPanel
           project={selectedProject}
           nodeColor={selectedProject.color || NODE_COLORS[projects.indexOf(selectedProject) % NODE_COLORS.length]}
+          allProjects={projects}
           onClose={() => setSelectedProject(null)}
           onUpdate={handleProjectUpdate}
           onDelete={handleProjectDelete}
+          onRefresh={refreshProjects}
         />
       )}
       {/* Link modal */}
