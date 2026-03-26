@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useCharacterSelection } from "@/components/CharacterSelect";
-import NetworkBackground from "@/components/NetworkBackground";
 import ProjectGraph from "@/components/ProjectGraph";
 import ProjectDetailPanel from "@/components/ProjectDetailPanel";
 import PixelButton from "@/components/PixelButton";
@@ -83,8 +82,6 @@ export default function ProjectsPage() {
 
   return (
     <main className="relative min-h-screen">
-      <NetworkBackground />
-
       {/* Top bar */}
       <div className="relative z-10 flex items-center justify-between p-4 sm:p-8 fade-in-up">
         <PixelButton onClick={() => router.push("/")} color="var(--text-muted)">
