@@ -59,6 +59,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "memberId and weekStart required" }, { status: 400 });
     }
 
+    // Validate metric fields (must be integers 1-5)
+    const metricFields = ['metricEnergy', 'metricGoalCompletion', 'metricMood', 'metricCollaboration'];
+    for (const field of metricFields) {
+      if (data[field] !== undefined && data[field] !== null) {
+        const val = Number(data[field]);
+        if (!Number.isInteger(val) || val < 1 || val > 5) {
+          return NextResponse.json({ error: `${field} must be an integer 1-5` }, { status: 400 });
+        }
+        data[field] = val;
+      }
+    }
+
     const card = await prisma.weeklyCard.upsert({
       where: {
         memberId_weekStart: {

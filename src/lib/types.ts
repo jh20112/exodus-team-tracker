@@ -18,6 +18,10 @@ export interface WeeklyCard {
   curiousMoment: string | null;
   proudOf: string | null;
   couldImprove: string | null;
+  metricEnergy: number | null;
+  metricGoalCompletion: number | null;
+  metricMood: number | null;
+  metricCollaboration: number | null;
   fridayCompleted: boolean;
   createdAt: string;
   updatedAt: string;

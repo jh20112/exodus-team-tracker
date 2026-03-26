@@ -263,6 +263,17 @@ body {
   border: 1px solid var(--border-subtle);
 }
 
+/* Metric selector dots */
+.metric-dot {
+  transition: background-color 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.metric-dot:hover:not(:disabled) {
+  box-shadow: 0 0 8px var(--dot-color);
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;

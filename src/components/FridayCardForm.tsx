@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import PixelButton from "./PixelButton";
-import { Flower2, Zap, HelpCircle, Trophy, ArrowUpCircle } from "lucide-react";
+import { Flower2, Zap, HelpCircle, Trophy, ArrowUpCircle, Battery, Target, Smile, Users } from "lucide-react";
+import MetricSelector from "./MetricSelector";
 import type { TeamMember, WeeklyCard } from "@/lib/types";
 
 interface FridayCardFormProps {
@@ -31,6 +32,10 @@ export default function FridayCardForm({
   const [couldImprove, setCouldImprove] = useState(
     existingCard?.couldImprove || ""
   );
+  const [metricEnergy, setMetricEnergy] = useState<number | null>(existingCard?.metricEnergy ?? null);
+  const [metricGoalCompletion, setMetricGoalCompletion] = useState<number | null>(existingCard?.metricGoalCompletion ?? null);
+  const [metricMood, setMetricMood] = useState<number | null>(existingCard?.metricMood ?? null);
+  const [metricCollaboration, setMetricCollaboration] = useState<number | null>(existingCard?.metricCollaboration ?? null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -54,6 +59,10 @@ export default function FridayCardForm({
         curiousMoment,
         proudOf,
         couldImprove,
+        metricEnergy,
+        metricGoalCompletion,
+        metricMood,
+        metricCollaboration,
         fridayCompleted: true,
       }),
     });
@@ -156,6 +165,26 @@ export default function FridayCardForm({
               />
             </div>
           ))}
+        </div>
+
+        {/* Metrics */}
+        <div className="mt-6 mb-2">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="h-px flex-1" style={{ background: 'var(--border-default)' }} />
+            <span
+              className="font-[family-name:var(--font-pixel)] text-[10px]"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              HOW WAS YOUR WEEK?
+            </span>
+            <div className="h-px flex-1" style={{ background: 'var(--border-default)' }} />
+          </div>
+          <div className="flex flex-col gap-3">
+            <MetricSelector label="Energy" icon={<Battery size={14} strokeWidth={1.5} />} color="var(--accent-green)" value={metricEnergy} onChange={setMetricEnergy} readOnly={readOnly} />
+            <MetricSelector label="Goal hit" icon={<Target size={14} strokeWidth={1.5} />} color="var(--accent)" value={metricGoalCompletion} onChange={setMetricGoalCompletion} readOnly={readOnly} />
+            <MetricSelector label="Mood" icon={<Smile size={14} strokeWidth={1.5} />} color="var(--accent-amber)" value={metricMood} onChange={setMetricMood} readOnly={readOnly} />
+            <MetricSelector label="Collab" icon={<Users size={14} strokeWidth={1.5} />} color="var(--accent-rose)" value={metricCollaboration} onChange={setMetricCollaboration} readOnly={readOnly} />
+          </div>
         </div>
 
         {/* Actions */}
