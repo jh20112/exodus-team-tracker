@@ -24,6 +24,10 @@ const CFG = {
   hitPadding: 8,
   dragThreshold: 5,
   nameOffsetY: 30,
+  // Drift config
+  driftSpeed: 0.00008,
+  driftAmplitudeX: 12,
+  driftAmplitudeY: 8,
   // Workstream satellite config
   wsNodeRadius: 9,
   wsOrbitDistance: 60,
@@ -127,6 +131,12 @@ export default function ProjectGraph({
         const pulse = 1 + Math.sin(t * 0.001 * CFG.pulseSpeed + i * 1.3) * 0.04;
         const color = p.color || COLORS[i % COLORS.length];
 
+        // Slow drift — freeze when this project or any of its workstreams is hovered/dragged
+        const wsIds = (p.workstreams || []).map((ws) => `ws-${ws.id}`);
+        const isFrozen = hoveredId === p.id || wsIds.includes(hoveredId || "") || dragId === p.id;
+        const driftX = isFrozen ? 0 : Math.sin(t * CFG.driftSpeed + i * 2.7) * CFG.driftAmplitudeX;
+        const driftY = isFrozen ? 0 : Math.cos(t * CFG.driftSpeed * 0.7 + i * 1.9) * CFG.driftAmplitudeY;
+
         // Aggregate progress from workstreams
         const allItems = (p.workstreams || []).flatMap((ws) => ws.items || []);
         const totalItems = allItems.length;
@@ -134,8 +144,8 @@ export default function ProjectGraph({
 
         const projectNode: ScreenNode = {
           id: p.id,
-          x: pos.x,
-          y: pos.y,
+          x: pos.x + driftX,
+          y: pos.y + driftY,
           radius: CFG.nodeRadius * pulse * (hoveredId === p.id ? CFG.hoverScale : 1),
           color,
           name: p.name,
@@ -149,8 +159,8 @@ export default function ProjectGraph({
         const wsList = p.workstreams || [];
         wsList.forEach((ws, wi) => {
           const angle = (2 * Math.PI * wi / wsList.length) - Math.PI / 2;
-          const wsX = pos.x + Math.cos(angle) * CFG.wsOrbitDistance;
-          const wsY = pos.y + Math.sin(angle) * CFG.wsOrbitDistance;
+          const wsX = projectNode.x + Math.cos(angle) * CFG.wsOrbitDistance;
+          const wsY = projectNode.y + Math.sin(angle) * CFG.wsOrbitDistance;
           const wsPulse = 1 + Math.sin(t * 0.001 * CFG.pulseSpeed + wi * 2.1) * 0.03;
           const wsItems = ws.items || [];
           const wsCompleted = wsItems.filter((it) => it.completed).length;
